@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TermCanvas — Canvas-based Terminal Workspace</title>
+  <meta name="description" content="Manage multiple terminals on an infinite canvas. Drag, resize, group, and control from your phone. $19 one-time purchase.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* Midnight palette from ui-kit — tuned for dev tools */
+    :root {
+      --bg: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #263348;
+      --border: #334155;
+      --border-light: rgba(255,255,255,0.06);
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-light: #60a5fa;
+      --accent: #8b5cf6;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --pink: #ec4899;
+      --cyan: #06b6d4;
+      --orange: #f97316;
+
+      /* Tech Mono typography from ui-kit */
+      --font-heading: 'Space Grotesk', sans-serif;
+      --font-body: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Spacing system (4pt grid) */
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 12px;
+      --space-lg: 16px;
+      --space-xl: 24px;
+      --space-2xl: 32px;
+      --space-3xl: 48px;
+      --space-4xl: 64px;
+      --space-5xl: 96px;
+
+      --radius: 16px;
+      --max-w: 1120px;
+
+      /* Easing from ui-kit */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-default: cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ===== CURSOR GLOW ===== */
+    .cursor-glow {
+      position: fixed; width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      transform: translate(-50%, -50%);
+      transition: left 0.2s var(--ease-default), top 0.2s var(--ease-default);
+      display: none;
+    }
+
+    /* ===== GRID BG ===== */
+    .grid-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 20%, black 30%, transparent 100%);
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-12px) scale(1.01); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0; transform: scale(2); }
+    }
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .animate-in {
+      animation: fade-up 0.7s var(--ease-out) both;
+    }
+    .delay-1 { animation-delay: 0.08s; }
+    .delay-2 { animation-delay: 0.16s; }
+    .delay-3 { animation-delay: 0.24s; }
+    .delay-4 { animation-delay: 0.32s; }
+    .delay-5 { animation-delay: 0.4s; }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.6s var(--ease-default), transform 0.6s var(--ease-default);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ===== NAV ===== */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      backdrop-filter: blur(20px) saturate(1.4);
+      background: rgba(15,23,42,0.8);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .nav-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      padding: 0 var(--space-2xl); height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-heading);
+      font-weight: 700; font-size: 17px;
+      display: flex; align-items: center; gap: 10px;
+      letter-spacing: -0.3px;
+    }
+    .nav-logo-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 16px rgba(59,130,246,0.25);
+    }
+    .nav-logo-icon svg { width: 16px; height: 16px; color: white; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a {
+      font-size: 13px; font-weight: 500; color: var(--text-secondary);
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      padding: 7px 18px !important; border-radius: 8px !important;
+      font-size: 13px !important; font-weight: 600 !important;
+      background: var(--primary) !important; color: #fff !important;
+      transition: all .2s !important;
+    }
+    .nav-cta:hover { background: var(--primary-hover) !important; transform: translateY(-1px); }
+    .nav-cta:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 32px; border-radius: 12px;
+      font-family: var(--font-body);
+      font-size: 15px; font-weight: 600;
+      border: none; cursor: pointer;
+      transition: all .3s var(--ease-default);
+      position: relative; overflow: hidden;
+      letter-spacing: -0.2px;
+    }
+    .btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      box-shadow: 0 0 30px rgba(59,130,246,0.15), 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .btn-primary::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      animation: shimmer 4s infinite;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 0 50px rgba(59,130,246,0.2), 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.04); color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.07); color: var(--text);
+      border-color: var(--text-dim);
+      transform: translateY(-2px);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative;
+      padding: 160px var(--space-2xl) var(--space-5xl);
+      text-align: center; overflow: hidden;
+    }
+    .hero-orb {
+      position: absolute; border-radius: 50%; filter: blur(100px);
+      pointer-events: none; z-index: 0;
+    }
+    .hero-orb-1 {
+      width: 500px; height: 500px; top: -150px; left: 50%; transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+    }
+    .hero-orb-2 {
+      width: 350px; height: 350px; top: -80px; right: -80px;
+      background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+      animation: float 10s ease-in-out infinite;
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px 5px 8px; border-radius: 99px;
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.15);
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 500; color: var(--primary-light);
+      margin-bottom: var(--space-xl); letter-spacing: 0.5px;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success); position: relative;
+    }
+    .hero-badge-dot::before {
+      content: ''; position: absolute; inset: -3px; border-radius: 50%;
+      background: var(--success); opacity: 0.4;
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 700; line-height: 1.1;
+      letter-spacing: -1.5px;
+      max-width: 700px; margin: 0 auto var(--space-xl);
+    }
+    .hero h1 em {
+      font-style: normal; color: var(--primary-light);
+    }
+    .hero-sub {
+      font-size: 17px; color: var(--text-secondary);
+      max-width: 500px; margin: 0 auto var(--space-3xl);
+      line-height: 1.7; font-weight: 400;
+    }
+    .hero-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ===== STATS ===== */
+    .stats-bar { padding: var(--space-3xl) var(--space-2xl) 0; position: relative; z-index: 1; }
+    .stats-inner {
+      max-width: 600px; margin: 0 auto;
+      display: flex; justify-content: center; gap: var(--space-3xl);
+    }
+    .stat { text-align: center; }
+    .stat-value {
+      font-family: var(--font-heading);
+      font-size: 26px; font-weight: 700; letter-spacing: -1px;
+      color: var(--text);
+    }
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 10px; color: var(--text-dim); margin-top: 2px;
+      font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+
+    /* ===== SCREENSHOT ===== */
+    .screenshot-section {
+      padding: var(--space-4xl) var(--space-2xl) var(--space-5xl);
+      position: relative; z-index: 1;
+    }
+    .screenshot-wrapper {
+      max-width: 960px; margin: 0 auto;
+      border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    }
+    .screenshot-bar {
+      height: 38px; background: var(--bg-secondary);
+      display: flex; align-items: center; gap: 7px; padding: 0 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .screenshot-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screenshot-dot.r { background: #ef4444; }
+    .screenshot-dot.y { background: #eab308; }
+    .screenshot-dot.g { background: #22c55e; }
+    .screenshot-bar-title {
+      flex: 1; text-align: center;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-dim); font-weight: 500;
+    }
+    .screenshot-body {
+      aspect-ratio: 16/9;
+      background: linear-gradient(145deg, var(--bg) 0%, var(--bg-secondary) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 13px; color: var(--text-dim);
+    }
+
+    /* ===== DIVIDER ===== */
+    .divider {
+      max-width: 700px; margin: 0 auto;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* ===== FEATURES ===== */
+    .features { padding: var(--space-5xl) var(--space-2xl); position: relative; }
+    .section-header { text-align: center; margin-bottom: var(--space-4xl); }
+    .section-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px; font-weight: 500; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--primary-light);
+      margin-bottom: var(--space-md);
+    }
+    .section-header h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 700;
+      letter-spacing: -0.8px; margin-bottom: var(--space-md);
+    }
+    .section-header p {
+      color: var(--text-secondary); font-size: 15px;
+      max-width: 420px; margin: 0 auto; line-height: 1.7;
+    }
+    .features-grid {
+      max-width: var(--max-w); margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+    }
+    .feature-card {
+      padding: var(--space-2xl); border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      transition: all .35s var(--ease-default);
+    }
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .feature-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: var(--space-xl);
+    }
+    .feature-icon.blue { background: rgba(59,130,246,0.1); color: var(--primary); }
+    .feature-icon.green { background: rgba(34,197,94,0.1); color: var(--success); }
+    .feature-icon.purple { background: rgba(139,92,246,0.1); color: var(--accent); }
+    .feature-icon.orange { background: rgba(249,115,22,0.1); color: var(--orange); }
+    .feature-icon.cyan { background: rgba(6,182,212,0.1); color: var(--cyan); }
+    .feature-icon.pink { background: rgba(236,72,153,0.1); color: var(--pink); }
+    .feature-card h3 {
+      font-family: var(--font-heading);
+      font-size: 16px; font-weight: 600; margin-bottom: var(--space-sm);
+      letter-spacing: -0.2px;
+    }
+    .feature-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+
+    /* ===== HIGHLIGHT ===== */
+    .highlight { padding: var(--space-5xl) var(--space-2xl); position: relative; }
+    .highlight-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4xl);
+      align-items: center;
+    }
+    .highlight-text h3 {
+      font-family: var(--font-heading);
+      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700;
+      letter-spacing: -0.6px; margin-bottom: var(--space-lg);
+    }
+    .highlight-text p {
+      font-size: 15px; color: var(--text-secondary);
+      line-height: 1.7; margin-bottom: var(--space-xl);
+    }
+    .highlight-pills { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .highlight-pill {
+      padding: 5px 14px; border-radius: 99px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border-light);
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--text-secondary); font-weight: 500;
+    }
+    .highlight-visual {
+      background: var(--bg-card); border-radius: 20px;
+      border: 1px solid var(--border-light);
+      padding: var(--space-2xl);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 300px; position: relative; overflow: hidden;
+    }
+
+    /* Phone mockup */
+    .phone-mock {
+      width: 170px; height: 300px; border-radius: 22px;
+      background: var(--bg); border: 2px solid var(--border);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; overflow: hidden;
+      position: relative; z-index: 1;
+      animation: float 8s ease-in-out infinite;
+    }
+    .phone-notch {
+      width: 56px; height: 5px; background: var(--bg-secondary);
+      border-radius: 0 0 6px 6px; margin: 0 auto;
+    }
+    .phone-screen {
+      flex: 1; margin: 6px; border-radius: 10px;
+      background: var(--bg-secondary);
+      display: flex; flex-direction: column; padding: 10px; gap: 5px;
+    }
+    .phone-header {
+      font-family: var(--font-heading);
+      font-size: 8px; font-weight: 700; color: var(--text); margin-bottom: 2px;
+    }
+    .phone-term {
+      flex: 1; border-radius: 6px; padding: 6px;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border-light);
+    }
+    .phone-line { height: 3px; border-radius: 2px; margin-bottom: 3px; opacity: 0.5; }
+
+    /* ===== SHELLS ===== */
+    .shells { padding: var(--space-5xl) var(--space-2xl); }
+    .shells-inner { max-width: 660px; margin: 0 auto; text-align: center; }
+    .shell-tags {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin-top: var(--space-2xl);
+    }
+    .shell-tag {
+      padding: 9px 18px; border-radius: 99px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 500; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 8px;
+      transition: all .3s var(--ease-default);
+    }
+    .shell-tag:hover {
+      border-color: var(--border); color: var(--text);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    .shell-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ===== PRICING ===== */
+    .pricing { padding: var(--space-5xl) var(--space-2xl); }
+    .pricing-card {
+      max-width: 440px; margin: 0 auto;
+      padding: var(--space-3xl); border-radius: 24px;
+      background: var(--bg-card);
+      border: 1px solid rgba(59,130,246,0.12);
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .pricing-card::before {
+      content: ''; position: absolute; top: -1px; left: 20%; right: 20%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    }
+    .pricing-card::after {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 250px; height: 150px; filter: blur(80px);
+      background: rgba(59,130,246,0.06); pointer-events: none;
+    }
+    .pricing-content { position: relative; z-index: 1; }
+    .pricing-label {
+      font-family: var(--font-mono);
+      font-size: 10px; font-weight: 500; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--primary-light); margin-bottom: var(--space-xl);
+    }
+    .pricing-amount {
+      font-family: var(--font-heading);
+      font-size: 60px; font-weight: 700; letter-spacing: -3px;
+      margin-bottom: var(--space-xs);
+    }
+    .pricing-amount .currency {
+      font-size: 32px; vertical-align: top; margin-right: 2px;
+      color: var(--text-secondary);
+    }
+    .pricing-period {
+      color: var(--text-dim); font-size: 13px; margin-bottom: var(--space-2xl);
+      font-weight: 500;
+    }
+    .pricing-features { list-style: none; text-align: left; margin-bottom: var(--space-2xl); }
+    .pricing-features li {
+      padding: 9px 0; font-size: 14px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: var(--space-md);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-check {
+      width: 18px; height: 18px; border-radius: 5px;
+      background: rgba(34,197,94,0.1);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pricing-check svg { width: 11px; height: 11px; color: var(--success); }
+    .pricing-card .btn-primary {
+      width: 100%; justify-content: center; padding: 15px;
+      font-size: 15px; border-radius: 12px;
+    }
+    .pricing-guarantee {
+      margin-top: var(--space-lg); font-size: 11px; color: var(--text-dim);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-weight: 500;
+    }
+
+    /* ===== CTA ===== */
+    .cta-banner {
+      padding: var(--space-5xl) var(--space-2xl); text-align: center;
+      position: relative;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 300px; filter: blur(120px);
+      background: radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-banner h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700;
+      letter-spacing: -0.5px; margin-bottom: var(--space-md);
+      position: relative;
+    }
+    .cta-banner p {
+      color: var(--text-secondary); font-size: 15px; margin-bottom: var(--space-2xl);
+      position: relative;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: var(--space-3xl) var(--space-2xl);
+      border-top: 1px solid var(--border-light);
+    }
+    .footer-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-brand {
+      font-family: var(--font-heading);
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-secondary);
+    }
+    footer p { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      font-size: 12px; color: var(--text-dim); transition: color .2s; font-weight: 500;
+    }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .highlight-inner { grid-template-columns: 1fr; gap: var(--space-2xl); }
+    }
+    @media (max-width: 640px) {
+      .hero { padding: 130px 20px var(--space-4xl); }
+      .hero h1 { letter-spacing: -1px; }
+      .nav-links { gap: 14px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-card { padding: var(--space-2xl); }
+      .pricing-amount { font-size: 48px; }
+      .stats-inner { gap: var(--space-xl); }
+      .footer-inner { flex-direction: column; gap: var(--space-lg); text-align: center; }
+      .cursor-glow { display: none !important; }
+    }
+
+    /* ===== REDUCED MOTION (REQUIRED) ===== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor-glow" id="cursor-glow"></div>
+  <div class="grid-bg"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </div>
+        TermCanvas
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://github.com/voidcraft-dev/termcanvas-site" target="_blank">GitHub</a>
+        <a href="#pricing" class="nav-cta">Buy — $19</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-content">
+      <div class="hero-badge animate-in">
+        <span class="hero-badge-dot"></span>
+        v0.1.0 — Now available
+      </div>
+      <h1 class="animate-in delay-1">Your terminals,<br><em>on an infinite canvas</em></h1>
+      <p class="hero-sub animate-in delay-2">Drag, resize, and group terminal sessions spatially. Monitor everything from your phone. Built for developers who juggle.</p>
+      <div class="hero-buttons animate-in delay-3">
+        <a href="#pricing" class="btn btn-primary">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          Get TermCanvas — $19
+        </a>
+        <a href="https://github.com/voidcraft-dev/termcanvas-site" target="_blank" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View Source
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar animate-in delay-4">
+    <div class="stats-inner">
+      <div class="stat"><div class="stat-value">3</div><div class="stat-label">Platforms</div></div>
+      <div class="stat"><div class="stat-value">7+</div><div class="stat-label">Shells</div></div>
+      <div class="stat"><div class="stat-value">&infin;</div><div class="stat-label">Canvas</div></div>
+      <div class="stat"><div class="stat-value">$19</div><div class="stat-label">One-time</div></div>
+    </div>
+  </div>
+
+  <!-- SCREENSHOT -->
+  <section class="screenshot-section animate-in delay-5">
+    <div class="screenshot-wrapper">
+      <div class="screenshot-bar">
+        <span class="screenshot-dot r"></span>
+        <span class="screenshot-dot y"></span>
+        <span class="screenshot-dot g"></span>
+        <span class="screenshot-bar-title">TermCanvas</span>
+        <span style="width:40px"></span>
+      </div>
+      <div class="screenshot-body">
+        <!-- Replace: <img src="screenshot.png" alt="TermCanvas screenshot" style="width:100%;height:100%;object-fit:cover;"> -->
+        <span>[ screenshot.png — place your app screenshot here ]</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-header reveal">
+      <div class="section-tag">Features</div>
+      <h2>Everything you need</h2>
+      <p>A spatial workspace for terminals — not just another tab manager.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>Infinite Canvas</h3>
+        <p>Arrange terminals freely on a zoomable, pannable surface. No tabs, no rigid splits — just drag and place.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </div>
+        <h3>Region Groups</h3>
+        <p>Group related terminals into named regions. One per project — frontend, backend, database, visually organized.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <h3>Mobile Remote</h3>
+        <p>Scan a QR code with your phone. Monitor or type into any session from the couch — real-time over LAN.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </div>
+        <h3>Multi-Shell</h3>
+        <p>PowerShell, CMD, WSL, Bash, Git Bash, Zsh, Fish — auto-detected on your system. Mix them freely.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon cyan">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h3>Persistent Workspaces</h3>
+        <p>Save entire layouts and switch between projects instantly. Your arrangement is always waiting for you.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon pink">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <h3>Smart Resize</h3>
+        <p>Terminals auto-fit when resized. The interactive minimap lets you navigate large workspaces at a glance.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HIGHLIGHT: Mobile Remote -->
+  <section class="highlight reveal">
+    <div class="highlight-inner">
+      <div class="highlight-text">
+        <div class="section-tag">Remote Access</div>
+        <h3>Control from your phone</h3>
+        <p>Running a long build? Training a model? Walk away from your desk. TermCanvas runs a local web server — open it on your phone and you have full access to every terminal session.</p>
+        <div class="highlight-pills">
+          <span class="highlight-pill">WebSocket</span>
+          <span class="highlight-pill">QR connect</span>
+          <span class="highlight-pill">Token auth</span>
+          <span class="highlight-pill">LAN only</span>
+        </div>
+      </div>
+      <div class="highlight-visual">
+        <div class="phone-mock">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-header">TermCanvas Remote</div>
+            <div class="phone-term">
+              <div class="phone-line" style="width:65%;background:var(--success);"></div>
+              <div class="phone-line" style="width:85%;background:var(--text-dim);"></div>
+              <div class="phone-line" style="width:50%;background:var(--text-dim);"></div>
+              <div class="phone-line" style="width:75%;background:var(--primary);"></div>
+            </div>
+            <div class="phone-term">
+              <div class="phone-line" style="width:55%;background:var(--accent);"></div>
+              <div class="phone-line" style="width:80%;background:var(--text-dim);"></div>
+              <div class="phone-line" style="width:40%;background:var(--text-dim);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SHELLS -->
+  <section class="shells reveal">
+    <div class="shells-inner">
+      <div class="section-header">
+        <div class="section-tag">Compatibility</div>
+        <h2>Works with your shell</h2>
+        <p>Auto-detects what's installed. Zero config.</p>
+      </div>
+      <div class="shell-tags">
+        <span class="shell-tag"><span class="shell-dot" style="background:#0078d4"></span> PowerShell</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#c0c0c0"></span> CMD</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#e95420"></span> WSL</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#4eaa25"></span> Bash</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#f05032"></span> Git Bash</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#89e051"></span> Zsh</span>
+        <span class="shell-tag"><span class="shell-dot" style="background:#31c48d"></span> Fish</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PRICING -->
+  <section class="pricing reveal" id="pricing">
+    <div class="section-header">
+      <div class="section-tag">Pricing</div>
+      <h2>Simple, fair pricing</h2>
+      <p>Pay once. Use forever. No subscriptions.</p>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-content">
+        <div class="pricing-label">Lifetime License</div>
+        <div class="pricing-amount"><span class="currency">$</span>19</div>
+        <div class="pricing-period">One-time payment &middot; Free updates forever</div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited terminals &amp; regions</li>
+          <li><span class="pricing-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Mobile remote control</li>
+          <li><span class="pricing-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>All current &amp; future shells</li>
+          <li><span class="pricing-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Windows, macOS &amp; Linux</li>
+          <li><span class="pricing-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Priority support &amp; updates</li>
+        </ul>
+        <a href="https://voidcraft-dev.lemonsqueezy.com/checkout/buy/7a8bd36b-0856-4f94-82ba-da7a420fcbe9" class="btn btn-primary">
+          Get TermCanvas Now
+        </a>
+        <div class="pricing-guarantee">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          14-day money-back guarantee
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-banner reveal">
+    <h2>Ready to level up your workflow?</h2>
+    <p>Join developers who manage their terminals visually.</p>
+    <a href="#pricing" class="btn btn-primary" style="position:relative;">
+      Start Using TermCanvas
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+        TermCanvas
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/voidcraft-dev/termcanvas-site" target="_blank">GitHub</a>
+        <a href="mailto:revk3315196130@gmail.com">Contact</a>
+      </div>
+      <p>&copy; 2026 TermCanvas by REZVK</p>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Cursor glow (desktop only)
+    const glow = document.getElementById('cursor-glow');
+    if (window.matchMedia('(pointer: fine)').matches) {
+      glow.style.display = 'block';
+      document.addEventListener('mousemove', (e) => {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top = e.clientY + 'px';
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — TermCanvas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --bg-secondary: #1e293b; --border: #334155;
+      --border-light: rgba(255,255,255,0.06); --text: #f1f5f9;
+      --text-secondary: #94a3b8; --text-dim: #64748b;
+      --primary: #3b82f6; --primary-hover: #2563eb;
+      --success: #22c55e;
+      --font-heading: 'Space Grotesk', sans-serif;
+      --font-body: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { color: var(--primary-hover); text-decoration: underline; }
+
+    .grid-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 20%, black 30%, transparent 100%);
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,23,42,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+      padding: 0 32px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--text); text-decoration: none; }
+    .nav-logo:hover { text-decoration: none; color: var(--primary); }
+    .nav-back { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+    .nav-back:hover { color: var(--text); text-decoration: none; }
+
+    main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 64px 32px 96px; }
+
+    .page-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--primary); text-transform: uppercase; letter-spacing: 1.5px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 20px; padding: 4px 12px; margin-bottom: 20px; }
+    h1 { font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+    .updated { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-light); }
+
+    h2 { font-family: var(--font-heading); font-size: 18px; font-weight: 600; color: var(--text); margin: 40px 0 12px; }
+    p { color: var(--text-secondary); margin-bottom: 16px; font-size: 15px; }
+    ul { color: var(--text-secondary); font-size: 15px; padding-left: 24px; margin-bottom: 16px; }
+    ul li { margin-bottom: 8px; }
+
+    .highlight-box {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 20px 24px; background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.2); border-radius: 16px;
+      margin-bottom: 40px;
+    }
+    .highlight-box .icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .highlight-box p { margin: 0; color: #86efac; font-size: 14px; }
+
+    .contact-box { margin-top: 48px; padding: 24px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 16px; }
+    .contact-box p { margin: 0; }
+    footer { text-align: center; margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--border-light); font-size: 13px; color: var(--text-dim); }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav>
+    <a href="/" class="nav-logo">TermCanvas</a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </nav>
+
+  <main>
+    <div class="page-tag">Legal</div>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: April 20, 2025</p>
+
+    <div class="highlight-box">
+      <span class="icon">🔒</span>
+      <p><strong>Short version:</strong> TermCanvas is a local desktop application. Your terminal sessions, workspace layouts, and command history never leave your device. The only external communication is license validation.</p>
+    </div>
+
+    <h2>1. Information We Collect</h2>
+    <p>TermCanvas collects minimal information:</p>
+    <ul>
+      <li><strong>License key:</strong> Sent to our licensing server (via Paddle) to validate your purchase. This is required for activation only.</li>
+      <li><strong>No telemetry:</strong> We do not collect usage data, crash reports, analytics, or any behavioral information.</li>
+      <li><strong>No account required:</strong> You do not need to create an account to use TermCanvas.</li>
+    </ul>
+
+    <h2>2. Data Stored Locally</h2>
+    <p>All of the following is stored only on your device and is never transmitted to our servers:</p>
+    <ul>
+      <li>Workspace layouts and region configurations</li>
+      <li>Terminal session history</li>
+      <li>Application settings and preferences</li>
+      <li>License key (stored locally after activation)</li>
+    </ul>
+
+    <h2>3. Remote Access Feature</h2>
+    <p>TermCanvas includes an optional remote access feature that allows you to control terminals from a phone over your local network (LAN). When using this feature:</p>
+    <ul>
+      <li>All communication is strictly between devices on your local network</li>
+      <li>No data is routed through our servers</li>
+      <li>The feature is disabled by default and requires explicit activation</li>
+      <li>Access is protected by a one-time token you control</li>
+    </ul>
+
+    <h2>4. Third-Party Services</h2>
+    <p><strong>Paddle</strong> (our payment processor) handles all payment transactions. When you purchase TermCanvas, Paddle collects your payment information and email address in accordance with <a href="https://www.paddle.com/legal/privacy" target="_blank" rel="noopener">Paddle's Privacy Policy</a>. VoidCraft Dev receives only the information needed to fulfill your order (license key issuance).</p>
+
+    <h2>5. Log Files</h2>
+    <p>TermCanvas writes log files to your local app data directory for debugging purposes. These logs contain application events and errors. They are stored only on your device and are never automatically uploaded.</p>
+
+    <h2>6. Children's Privacy</h2>
+    <p>TermCanvas is not directed at children under 13. We do not knowingly collect personal information from children.</p>
+
+    <h2>7. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify users of significant changes by updating the date at the top of this page.</p>
+
+    <div class="contact-box">
+      <h2 style="margin-top:0">Contact</h2>
+      <p>Questions about privacy? Reach us at <a href="mailto:support@voidcraft.dev">support@voidcraft.dev</a></p>
+    </div>
+
+    <footer>
+      <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a> · <a href="/">Home</a>
+    </footer>
+  </main>
+</body>
+</html>

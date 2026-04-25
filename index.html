@@ -15,7 +15,8 @@
   <meta name="twitter:description" content="Drag, resize, and group terminal sessions on an infinite canvas. $19 one-time.">
   <meta name="twitter:image" content="img/hero.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     :root{
@@ -26,16 +27,16 @@
       --purple:#8b5cf6;--purple-l:#a78bfa;--cyan:#06b6d4;
       --green:#22c55e;--orange:#f97316;--pink:#ec4899;--yellow:#eab308;
       --ease:cubic-bezier(0.25,1,0.5,1);
-      --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif;
+      --font:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif;
     }
     html{scroll-behavior:smooth;}
-    body{font-family:var(--font);background:#050b18;color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    body{font-family:var(--font);background:#050b18;color:var(--text);line-height:1.65;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;font-feature-settings:'cv02','cv03','cv04','cv11';letter-spacing:-0.01em;}
     a{color:inherit;text-decoration:none;}
 
     /* ──────────────────────────────────────────────────
        FLUID  (fixed, behind everything)
     ────────────────────────────────────────────────── */
-    #fluid{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.88;}
+    #fluid{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.55;filter:blur(6px) saturate(0.9);}
 
     /* ──────────────────────────────────────────────────
        CURSOR GLOW (follows mouse)
@@ -79,15 +80,13 @@
     /* Refraction layer — backdrop-filter references the SVG filter */
     .nav-glass{
       position:absolute;inset:0;
-      backdrop-filter:url(#nav-glass-filter) blur(1px);
-      -webkit-backdrop-filter:blur(18px) saturate(1.5); /* Safari fallback */
-      background:rgba(5,11,24,0.18);
-      border-bottom:1px solid rgba(255,255,255,0.09);
-      /* Edge-glow layers mimic glass thickness */
+      backdrop-filter:url(#nav-glass-filter) blur(2px);
+      -webkit-backdrop-filter:blur(20px) saturate(1.4);
+      background:rgba(5,11,24,0.45);
+      border-bottom:1px solid rgba(255,255,255,0.08);
       box-shadow:
-        0 0 0 0.5px rgba(255,255,255,0.12) inset,
-        0  1px 0   rgba(255,255,255,0.07) inset,
-        0 -1px 0   rgba(0,0,0,0.3)       inset,
+        0 0 0 0.5px rgba(255,255,255,0.08) inset,
+        0  1px 0   rgba(255,255,255,0.05) inset,
         0  4px 24px rgba(0,0,0,0.3);
     }
     /* Content sits above the glass */
@@ -99,8 +98,8 @@
     .nl{display:flex;gap:30px;align-items:center;}
     .nl a{font-size:13.5px;font-weight:500;color:var(--text2);transition:color .18s;}
     .nl a:hover{color:var(--text);}
-    .nbuy{padding:8px 22px;border-radius:10px;font-size:13px;font-weight:700;background:var(--blue);color:#fff;box-shadow:0 0 20px rgba(59,130,246,.35);transition:all .22s;}
-    .nbuy:hover{background:var(--blue-h);transform:translateY(-1px);box-shadow:0 0 36px rgba(59,130,246,.5);}
+    .nbuy{padding:8px 22px;border-radius:10px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:1px solid rgba(255,255,255,0.15);box-shadow:0 0 16px rgba(99,102,241,.3),inset 0 1px 0 rgba(255,255,255,0.15);transition:all .22s var(--ease);}
+    .nbuy:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 0 28px rgba(99,102,241,.45),inset 0 1px 0 rgba(255,255,255,0.2);}
 
     /* ──────────────────────────────────────────────────
        HERO
@@ -108,7 +107,7 @@
     .hero{
       min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
       text-align:center;padding:0 32px;position:relative;z-index:1;
-      background:radial-gradient(ellipse 110% 80% at 50% 50%,rgba(5,11,24,.05) 0%,rgba(5,11,24,.55) 55%,rgba(5,11,24,.9) 100%);
+      background:radial-gradient(ellipse 110% 80% at 50% 50%,rgba(5,11,24,.15) 0%,rgba(5,11,24,.65) 50%,rgba(5,11,24,.95) 100%);
     }
     .badge{display:inline-flex;align-items:center;gap:8px;padding:5px 16px 5px 10px;border-radius:99px;background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.22);font-family:var(--mono);font-size:11px;color:var(--blue-l);letter-spacing:.3px;margin-bottom:28px;}
     .bdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;position:relative;}
@@ -123,19 +122,20 @@
     /* ──────────────────────────────────────────────────
        BUTTONS
     ────────────────────────────────────────────────── */
-    .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:13px;font-family:var(--font);font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .28s var(--ease);position:relative;overflow:hidden;letter-spacing:-.2px;}
+    .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:13px;font-family:var(--font);font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .3s var(--ease);position:relative;overflow:hidden;letter-spacing:-.2px;}
     .btn:focus-visible{outline:2px solid var(--blue-l);outline-offset:2px;}
-    .bp{background:linear-gradient(135deg,var(--blue) 0%,#4338ca 100%);color:#fff;box-shadow:0 0 40px rgba(59,130,246,.22),0 4px 20px rgba(0,0,0,.35);}
-    .bp::after{content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);animation:shine 3.5s 1s infinite;}
+    .bp{background:linear-gradient(135deg,#3b82f6 0%,#6366f1 50%,#4338ca 100%);color:#fff;border:1px solid rgba(255,255,255,0.12);box-shadow:0 0 30px rgba(99,102,241,.2),0 4px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,0.15);}
+    .bp::after{content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);animation:shine 3.5s 1s infinite;}
     @keyframes shine{to{left:200%;}}
-    .bp:hover{transform:translateY(-3px);box-shadow:0 0 60px rgba(59,130,246,.32),0 8px 28px rgba(0,0,0,.4);}
+    .bp:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 50px rgba(99,102,241,.35),0 8px 28px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,0.2);}
+    .bp:active{transform:translateY(-1px) scale(0.98);}
     /* Ghost button = glass style */
     .bg{
       background:rgba(255,255,255,.04);color:var(--text2);
-      border:1px solid rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.10);
       backdrop-filter:blur(8px);
     }
-    .bg:hover{background:rgba(255,255,255,.08);color:var(--text);transform:translateY(-2px);}
+    .bg:hover{background:rgba(255,255,255,.08);color:var(--text);transform:translateY(-2px);border-color:rgba(255,255,255,.18);box-shadow:0 4px 20px rgba(0,0,0,.3);}
 
     /* ──────────────────────────────────────────────────
        GLASS CARD  (reusable pattern for cards)
@@ -159,7 +159,7 @@
     /* ──────────────────────────────────────────────────
        SCREENSHOT
     ────────────────────────────────────────────────── */
-    .shot-sec{padding:0 32px 80px;position:relative;z-index:1;background:linear-gradient(to bottom,transparent,rgba(5,11,24,.94) 8%,rgba(5,11,24,.97) 92%,transparent);}
+    .shot-sec{padding:0 32px 80px;position:relative;z-index:1;background:transparent;}
     .shot-frame{max-width:980px;margin:0 auto;border-radius:18px;overflow:hidden;border:1px solid var(--border2);box-shadow:0 40px 120px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.04) inset;position:relative;}
     .shot-frame::before{content:'';position:absolute;top:-1px;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.8),rgba(139,92,246,.5),transparent);z-index:1;}
     .shot-frame::after{content:'';position:absolute;bottom:-60px;left:10%;right:10%;height:60px;background:radial-gradient(ellipse,rgba(59,130,246,.14),transparent 70%);filter:blur(16px);pointer-events:none;}
@@ -167,12 +167,12 @@
     .fd{width:11px;height:11px;border-radius:50%;}
     .fd.r{background:#ef4444;}.fd.y{background:var(--yellow);}.fd.g{background:var(--green);}
     .ftitle{flex:1;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3);}
-    .shot-frame img{width:100%;display:block;}
+    .shot-frame img{width:100%;height:auto;display:block;object-fit:cover;}
 
     /* ──────────────────────────────────────────────────
        STATS (glass grid)
     ────────────────────────────────────────────────── */
-    .stats-sec{padding:0 32px 80px;position:relative;z-index:1;}
+    .stats-sec{padding:0 32px 0;position:relative;z-index:1;background:transparent;}
     .sg{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);border-radius:18px;overflow:hidden;position:relative;}
     /* glass layer behind the grid */
     .sg-glass{position:absolute;inset:0;border-radius:18px;backdrop-filter:blur(16px) saturate(1.4);background:rgba(13,22,40,0.6);border:1px solid var(--border);pointer-events:none;}
@@ -184,13 +184,13 @@
     /* ──────────────────────────────────────────────────
        SECTIONS
     ────────────────────────────────────────────────── */
-    .sec{padding:96px 32px;position:relative;z-index:1;background:linear-gradient(to bottom,transparent,rgba(5,11,24,.94) 5%,rgba(5,11,24,.97) 95%,transparent);}
-    .sec-alt{padding:96px 32px;position:relative;z-index:1;background:rgba(5,11,24,.96);}
+    .sec{padding:120px 32px 96px;position:relative;z-index:1;background:transparent;}
+    .sec-alt{padding:120px 32px 96px;position:relative;z-index:1;background:transparent;}
     .hd{text-align:center;margin-bottom:60px;}
     .tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue-l);background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.15);padding:3px 12px;border-radius:99px;margin-bottom:14px;}
     .hd h2{font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.75rem);font-weight:400;letter-spacing:-0.5px;margin-bottom:12px;}
     .hd p{color:var(--text2);font-size:16px;max-width:460px;margin:0 auto;line-height:1.75;}
-    .divider{max-width:800px;margin:0 auto;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
+    .divider{position:absolute;top:0;left:0;right:0;max-width:800px;margin:0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.04),transparent);z-index:10;}
 
     /* ──────────────────────────────────────────────────
        REVEAL
@@ -339,7 +339,7 @@
     /* ──────────────────────────────────────────────────
        CTA
     ────────────────────────────────────────────────── */
-    .cta{padding:100px 32px;text-align:center;position:relative;z-index:1;overflow:hidden;background:linear-gradient(to bottom,transparent,rgba(5,11,24,.9));}
+    .cta{padding:100px 32px;text-align:center;position:relative;z-index:1;overflow:hidden;background:rgba(5,11,24,.98);}
     .cta-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 100% at 50% 80%,rgba(59,130,246,.08),transparent 60%),radial-gradient(ellipse 50% 70% at 20% 40%,rgba(139,92,246,.05),transparent 60%);}
     .cta-in{position:relative;z-index:1;}
     .cta h2{font-family:var(--serif);font-size:clamp(2rem,4vw,3.2rem);font-weight:400;letter-spacing:-0.5px;margin-bottom:14px;}
@@ -349,7 +349,7 @@
     /* ──────────────────────────────────────────────────
        FOOTER
     ────────────────────────────────────────────────── */
-    footer{padding:36px 32px;border-top:1px solid var(--border);background:rgba(5,11,24,.95);position:relative;z-index:1;}
+    footer{padding:36px 32px;border-top:1px solid rgba(255,255,255,0.04);background:rgba(5,11,24,.98);position:relative;z-index:1;}
     .fw{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
     .fbrand{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text2);}
     .flinks{display:flex;gap:22px;}
@@ -493,17 +493,17 @@
                preserveAspectRatio="none"/>
       <!-- R channel — base scale -->
       <feDisplacementMap id="nav-disp-r" in="SourceGraphic" in2="map"
-        xChannelSelector="R" yChannelSelector="B" scale="-120" result="dR"/>
+        xChannelSelector="R" yChannelSelector="B" scale="-30" result="dR"/>
       <feColorMatrix in="dR" type="matrix"
         values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="lR"/>
       <!-- G channel -->
       <feDisplacementMap id="nav-disp-g" in="SourceGraphic" in2="map"
-        xChannelSelector="R" yChannelSelector="B" scale="-108" result="dG"/>
+        xChannelSelector="R" yChannelSelector="B" scale="-27" result="dG"/>
       <feColorMatrix in="dG" type="matrix"
         values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="lG"/>
       <!-- B channel -->
       <feDisplacementMap id="nav-disp-b" in="SourceGraphic" in2="map"
-        xChannelSelector="R" yChannelSelector="B" scale="-96" result="dB"/>
+        xChannelSelector="R" yChannelSelector="B" scale="-24" result="dB"/>
       <feColorMatrix in="dB" type="matrix"
         values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="lB"/>
       <!-- Recombine via screen blend = full color + dispersion -->
@@ -614,11 +614,9 @@
   </div>
 </div>
 
-<div style="height:80px"></div>
-<div class="divider"></div>
-
 <!-- ━━━ FEATURES TABS ━━━ -->
 <section class="sec" id="features">
+  <div class="divider"></div>
   <div class="hd rv">
     <div class="tag">Features</div>
     <h2>Not another tab manager</h2>
